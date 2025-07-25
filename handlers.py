@@ -4,6 +4,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
 import keyboards as kb
+from config import telegram_bot_owner
+from google_sheets import add_data_table
 
 router = Router()
 
@@ -70,10 +72,22 @@ async def reg_contact(message: Message, state: FSMContext):
 
 @router.message(StateFilter(BotStates.entering_text))
 async def reg_contact(message: Message, state: FSMContext):
+    bot_msg = await message.answer(text='Отправляем данные')
     await state.set_state(None)
     User.text = message.text
-    await message.bot.send_message(chat_id=1568187767, text=f'{User.name}\n{User.contact}\n{User.text}')
-    await message.answer(text='Спасибо! Мы свяжемся в течение 1 рабочего дня')
+    data = [User.name, User.contact, User.text, message.from_user.first_name,
+            message.from_user.last_name, f'@{message.from_user.username}']
+    text = f'''
+Имя: {data[0]}
+Контакт: {data[1]}
+Запрос: {data[2]}
+Telegram данные:
+{data[3]}
+{data[4]}
+{data[5]}'''
+    await message.bot.send_message(chat_id=telegram_bot_owner, text=text)
+    add_data_table(data)
+    await bot_msg.edit_text(text='Спасибо! Мы свяжемся в течение 1 рабочего дня')
 
 
 @router.callback_query(F.data == 'menu_command_3')
